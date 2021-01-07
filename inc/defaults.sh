@@ -8,28 +8,24 @@ USER_NAME=$(whoami)
 # Default = 12
 MIN_HOURS=12
 
-# Maximum number of log files to leave around
+# Days of logs to keep around to leave around
 # Default = 20
-LOGS_TO_KEEP=20
+LOGS_TO_KEEP="+90"
 
 # Use sudo if we can? Used to "nice" the rclone command and run it in case you're 
 # trying to backup stuff you can't access w/o it.
 # 1 == Yes
 # 0 == No (0 or anything else)
-USE_SUDO=1
-
-
-#############################################
-# MailGun Setup
-# If an API Key is entered, the script automatically tries to send an email on failure.
-#############################################
-MAILGUN_DOMAIN="example.net"
-MAILGUN_APIKEY="key-MYKEY"
-MAILGUN_FROM="support@example.org"
-MAILGUN_TO="me@example.com"
-MAILGUN_SUBJECT="$COMPUTER_NAME / $USER_NAME backup problem!"
-
-
+USE_SUDO=0
+SOURCE_PATH=""
+DESTINATION_PATH="./DownloadedFiles/$(date +%F_%H-%M-%S)"
+STORAGE_PATH="./DownloadedFiles/"
+logdirstorage="./BackupStorage/logs/"
+#This should contain a email.
+MAIL_TO_STATUS=""
+MAIL_TO_FAILURE=""
+daysofbackup="+90"
+rcloneconfig="rclone.conf"
 ####### These probably don't need to be changed #######
 # The file we drop after backups
 # Default = "$SCRIPT_HOME/.lastrun"

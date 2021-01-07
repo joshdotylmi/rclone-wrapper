@@ -1,19 +1,12 @@
 # See if it's time to do a full run or bail
 shouldRun() {
-    if [ -e $LASTFILE ]; then
-
-        NOW=$(date +%s)
-        LAST=$(stat -c %Y $LASTFILE)
-
-        DIFF=$(expr $NOW - $LAST)
-        HR_DIFF=$(expr $DIFF / 60 / 60)
-        if [ $HR_DIFF -lt $MIN_HOURS ]; then
-            echo "Only $HR_DIFF hours have elapsed since the last backup. Waiting for at least $(expr $MIN_HOURS - $HR_DIFF) hours before running again."
-            # this is already created, useless, and screws with cleaning up log files.
-            rm $LOGFILE
-            exit
-        fi
-    fi
+if pgrep -x "rclone" > /dev/null
+then
+    log "Rclone is already running, exiting"
+	exit
+else
+    log "Rclone is not already running"
+fi
 }
 
 # make sure we have a network connection, otherwise our purpose for this is futile
@@ -70,14 +63,14 @@ validateConfig() {
 }
 
 # run the indiivual backup for each bucket config
-runBackups() {
-    for CFGFILE in $SCRIPT_HOME/config/*.sh; 
-    do 
-        source $CFGFILE
-        backup
-    done
-    finish
-}
+#runBackups() {
+#    for CFGFILE in $SCRIPT_HOME/config/*.sh; 
+#    do 
+#        source $CFGFILE
+#        backup
+#    done
+#    finish
+#}
 
 # This wraps up the rclone command and params to run each for each bucket config
 backup() {
@@ -91,15 +84,12 @@ backup() {
 
     (set -x; \
     /usr/bin/time -v -o $LOGFILE -a \
-        $NICE_CMD -n $NICE rclone sync $SOURCE_PATH $DESTINATION_PATH \
-        --delete-excluded \
-        --filter-from $SCRIPT_HOME/config/$FILTER_FILE \
+        $NICE_CMD ./rclone copy $SOURCE_PATH $DESTINATION_PATH \
         --log-file=$LOGFILE \
         --log-level INFO \
-        --track-renames \
-        --skip-links \
+		--config $rcloneconfig \
         --stats-log-level DEBUG \
-        --update >> $LOGFILE;
+         >> $LOGFILE;
     )
 
     #  --backup-dir=$ARCHIVE_DESTINATION_PATH \
@@ -112,35 +102,67 @@ backup() {
     else
         log "FINISHED BACKUP - ${SOURCE_PATH} dirs"
     fi
+	finish
 }
 
 # if configured, try to email you/someone if there's a problem with the backups
 notifyFailure() {
-    if [ -z "$(which curl)" ]; then
-        log "curl not found, can't send notifications!"
-    elif [ ! -z  $MAILGUN_APIKEY ]; then
+    
+  
         log "Attempting to notify about backup problem..."
-        RESULT=`curl -o /dev/null -s -w "%{http_code}\n" --user "api:$MAILGUN_APIKEY" \
-            https://api.mailgun.net/v3/$MAILGUN_DOMAIN/messages \
-            -F from=$MAILGUN_FROM \
-            -F to=$MAILGUN_TO \
-            -F subject="$MAILGUN_SUBJECT" \
-            -F text="$(cat $LOGFILE)" `
+#        RESULT=`curl -o /dev/null -s -w "%{http_code}\n" --user "api:$MAILGUN_APIKEY" \
+#            https://api.mailgun.net/v3/$MAILGUN_DOMAIN/messages \
+#            -F from=$MAILGUN_FROM \
+#            -F to=$MAILGUN_TO \
+#            -F subject="$MAILGUN_SUBJECT" \
+#            -F text="$(cat $LOGFILE)" `
+			#RESULT=$(cat $LOGFILE | ssmtp $MAIL_TO_STATUS)
+			printf '%s\n' "Subject: Backup Error" "$(cat $LOGFILE)" | ssmtp $MAIL_TO_FAILURE
 
-        if [[ $RESULT == 2* ]]; then
+        if [ $? = 0 ]; then
             log "Error email sent"
         else
-            log "UNABLE to send error email! HTTP RESP: $RESULT"
+            log "UNABLE to send error email!"
         fi
-    else
-        log "Problem with backup, but no notification option configured..."
-    fi
+    
+    
 }
+notifyStatus() {
+    
+        log "Attempting to notify about backup status..."
+#        RESULT=`curl -o /dev/null -s -w "%{http_code}\n" --user "api:$MAILGUN_APIKEY" \
+#            https://api.mailgun.net/v3/$MAILGUN_DOMAIN/messages \
+#            -F from=$MAILGUN_FROM \
+#            -F to=$MAILGUN_TO \
+#            -F subject="$MAILGUN_SUBJECT" \
+#            -F text="$(cat $LOGFILE)" `
+			#RESULT=$(cat $LOGFILE | ssmtp $MAIL_TO_STATUS)
+			printf '%s\n' "Subject: Backup Status" "$(cat $LOGFILE)" | ssmtp $MAIL_TO_STATUS
 
+        if [ $? = 0 ]; then
+            log "Status email sent"
+        else
+            log "UNABLE to send Status email!"
+        fi
+    
+    
+}
+trim() {
+log "Trim on $STORAGE_PATH with $daysofbackup days of retention started "
+find $STORAGE_PATH* -type d -ctime $daysofbackup -print0 | while read -d $'\0' file
+	do
+	log "deleting backup $file"
+	rm -rf $file
+	done
+log "Backup trim finished"
+
+}
 
 finish() {
     touch $LASTFILE
     if [ $FAILURE == 1 ]; then
         notifyFailure
+		notifyStatus
     fi
+	notifyStatus
 }

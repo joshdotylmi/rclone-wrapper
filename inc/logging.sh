@@ -16,14 +16,13 @@ log() {
 }
 
 cleanupLogs() {
-    REMOVE=$(expr $(ls $LOGDIR/ -1rt | wc -l) - $LOGS_TO_KEEP)
-    if [ "$REMOVE" > 1 ]; then
-        for i in $(ls $LOGDIR/ -1rt | head -n $REMOVE);
-        do
-            rm "$LOGDIR/$i";
-        done
-        log "Cleaned up $REMOVE old log files, $LOGS_TO_KEEP remain."
-    else
-        log "Fewer then $LOGS_TO_KEEP log fils remain, all retained."
-    fi
+
+log "Cleaning up old log files, $LOGS_TO_KEEP days worth of logs are kept within $logdirstorage"
+	
+find $LOGDIR* -ctime $LOGS_TO_KEEP -print0 | while read -d $'\0' logfilesdeleted
+	do
+	log "Deleting log $logfilesdeleted within $LOGDIR"
+	rm -rf $logfilesdeleted
+	done
+	 
 }

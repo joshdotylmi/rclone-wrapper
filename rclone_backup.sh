@@ -13,9 +13,9 @@ source "$SCRIPT_HOME/inc/funcs.sh" || exit 1
 
 # 'init' scripts
 shouldRun
-checkNetwork
+#checkNetwork
 cleanupLogs
-
+trim
 # handle backups
-validateConfig
-runBackups
+#validateConfig
+backup
