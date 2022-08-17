@@ -8,7 +8,7 @@ USER_NAME=$(whoami)
 # Default = 12
 MIN_HOURS=12
 
-# Days of logs to keep around to leave around
+# Maximum number of log files to leave around
 # Default = 20
 LOGS_TO_KEEP="+90"
 
@@ -16,15 +16,27 @@ LOGS_TO_KEEP="+90"
 # trying to backup stuff you can't access w/o it.
 # 1 == Yes
 # 0 == No (0 or anything else)
-USE_SUDO=0
-SOURCE_PATH=""
-DESTINATION_PATH="./DownloadedFiles/$(date +%F_%H-%M-%S)"
-STORAGE_PATH="./DownloadedFiles/"
-logdirstorage="./BackupStorage/logs/"
-#This should contain a email.
-MAIL_TO_STATUS=""
-MAIL_TO_FAILURE=""
-daysofbackup="+90"
+#USE_SUDO=0
+
+#ROOT_PATH="/mnt/c//"
+
+ROOT_PATH="/volume1/BackupStorage"
+#SOURCE_PATH="Sharefile:/"
+SOURCE_PATH="Sharefile:/"
+DESTINATION_PATH="/volume1/BackupStorage/DownloadedFiles/$(date +%F)"
+STORAGE_PATH="/volume1/BackupStorage/DownloadedFiles/"
+logdirstorage="/volume1/BackupStorage/logs/"
+
+MAIL_TO_STATUS="testemail@email.net"
+
+MAIL_TO_STATUSDEV="testemail@email.net"
+MAIL_TO_FAILURE="testemail@email.net"
+MAIL_TO_FAILUREDEV="testemail@email.net"
+daysofbackup="+45"
+#In days
+monthsofbackup="+365"
+#In days
+yearsofbackup="+3650"
 rcloneconfig="rclone.conf"
 ####### These probably don't need to be changed #######
 # The file we drop after backups
